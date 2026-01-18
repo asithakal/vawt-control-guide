@@ -1,0 +1,78 @@
+# PlatformIO
+.pio/
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# MATLAB
+*.asv
+*.m~
+slprj/
+*.autosave
+
+# KiCad
+*-cache.lib
+*-cache.dcm
+*-rescue.lib
+*-rescue.dcm
+*.bak
+*.kicad_pcb-bak
+*~
+_autosave-*
+fp-info-cache
+*.lck
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/launch.json
+.vscode/tasks.json
+
+# Large data files (use Git LFS or Zenodo)
+datasets/**/*.csv
+!datasets/example-runs/sample-10min.csv
+datasets/**/*.bin
+datasets/**/*.dat
+datasets/**/*.h5
+
+# Build artifacts
+*.hex
+*.elf
+*.bin
+*.map
+
+# Documentation builds
+docs/_build/
+*.pdf
+!appendices/*.pdf
+
+# Temporary
+*.tmp
+*.log
+*.swp
+*~

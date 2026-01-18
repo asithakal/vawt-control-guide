@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "platformio.platformio-ide",
+        "ms-python.python",
+        "ms-toolsai.jupyter",
+        "eamodio.gitlens",
+        "yzhang.markdown-all-in-one",
+        "hediet.vscode-drawio",
+        "davidanson.vscode-markdownlint"
+    ]
+}

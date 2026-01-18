@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Kulasekera"
+    given-names: "Asitha"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "Small-Scale VAWT Control Systems: A Practical Guide for Student Researchers"
+version: 1.0.0
+doi: 10.5281/zenodo.XXXXXXX
+date-released: 2026-01-17
+url: "https://github.com/asithakal/vawt-control-guide"
+license: CC-BY-4.0
+keywords:
+  - wind turbine
+  - VAWT
+  - control systems
+  - MPPT
+  - vertical axis wind turbine
+  - Sri Lanka
+  - tropical climate
+  - IEC 61400-2
+  - embedded systems
+repository-code: "https://github.com/asithakal/vawt-control-guide"
+references:
+  - type: software
+    authors:
+      - family-names: "Kulasekera"
+        given-names: "Asitha"
+    title: "Wind Turbine Data Acquisition Systems: A Practical Guide"
+    doi: 10.5281/zenodo.18093662
+    url: "https://github.com/asithakal/wind-turbine-daq-guide"
