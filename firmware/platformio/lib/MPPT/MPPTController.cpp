@@ -59,7 +59,7 @@ float MPPTController::calculateAdaptiveStep(float windSpeed)
     float sigma = sqrt(variance / 10.0);
 
     // Adaptive step: reduce step size in turbulent conditions
-    float basestep = 0.02;
+    float baseStep = 0.02;
     float k_turb = 0.5; // Tuning parameter
     return baseStep * (1.0 / (1.0 + k_turb * sigma));
 }
