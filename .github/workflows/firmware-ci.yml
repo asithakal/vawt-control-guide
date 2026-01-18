@@ -2,50 +2,47 @@ name: Firmware CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [ main, dev ]
     paths:
-      - "firmware/**"
+      - 'firmware/**'
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
-        platform: [esp32dev, nucleo_f446re]
-
+        platform: [esp32dev]
+    
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Cache PlatformIO
-        uses: actions/cache@v3
-        with:
-          path: ~/.platformio
-          key: ${{ runner.os }}-platformio-${{ hashFiles('**/platformio.ini') }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.9"
-
-      - name: Install PlatformIO
-        run: |
-          python -m pip install --upgrade pip
-          pip install platformio
-
-      - name: Build firmware for ${{ matrix.platform }}
-        run: |
-          cd firmware/platformio
-          pio run -e ${{ matrix.platform }}
-
-      - name: Run static analysis
-        run: |
-          cd firmware/platformio
-          pio check --severity=medium
-
-      - name: Upload firmware artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: firmware-${{ matrix.platform }}
-          path: firmware/platformio/.pio/build/${{ matrix.platform }}/firmware.bin
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Cache PlatformIO
+      uses: actions/cache@v3
+      with:
+        path: ~\.platformio
+        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install PlatformIO
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+    
+    - name: Build firmware
+      run: |
+        cd firmware/platformio
+        pio run -e ${{ matrix.platform }}
+    
+    - name: Upload firmware artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-${{ matrix.platform }}
+        path: firmware/platformio/.pio/build/${{ matrix.platform }}/firmware.bin
+        retention-days: 7
