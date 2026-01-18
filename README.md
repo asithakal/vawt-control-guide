@@ -1,6 +1,6 @@
 # Small-Scale VAWT Control Systems: A Practical Guide for Student Researchers
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18291588.svg)](https://doi.org/10.5281/zenodo.18291588)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Ready-blue.svg)](https://platformio.org/)
 [![Build Status](https://github.com/asithakal/vawt-control-guide/workflows/Firmware%20CI/badge.svg)](https://github.com/asithakal/vawt-control-guide/actions)
