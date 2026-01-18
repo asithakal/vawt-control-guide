@@ -2,47 +2,66 @@ name: Firmware CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
     paths:
-      - 'firmware/**'
+      - "firmware/**"
+      - ".github/workflows/**"
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest # Use Linux for faster builds
     strategy:
       matrix:
         platform: [esp32dev]
-    
+      fail-fast: false # Continue even if one platform fails
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Cache PlatformIO
-      uses: actions/cache@v3
-      with:
-        path: ~\.platformio
-        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install PlatformIO
-      run: |
-        python -m pip install --upgrade pip
-        pip install platformio
-    
-    - name: Build firmware
-      run: |
-        cd firmware/platformio
-        pio run -e ${{ matrix.platform }}
-    
-    - name: Upload firmware artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: firmware-${{ matrix.platform }}
-        path: firmware/platformio/.pio/build/${{ matrix.platform }}/firmware.bin
-        retention-days: 7
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v3
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PlatformIO Core
+        run: |
+          python -m pip install --upgrade pip
+          pip install platformio
+
+      - name: Build firmware for ${{ matrix.platform }}
+        run: |
+          cd firmware/platformio
+          pio run -e ${{ matrix.platform }}
+
+      - name: Check code size
+        if: success()
+        run: |
+          cd firmware/platformio
+          pio run -e ${{ matrix.platform }} -t size
+
+      - name: Upload firmware artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.platform }}-${{ github.sha }}
+          path: firmware/platformio/.pio/build/${{ matrix.platform }}/firmware.bin
+          retention-days: 30
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.platform }}-${{ github.sha }}
+          path: firmware/platformio/.pio/build/${{ matrix.platform }}/
+          retention-days: 7
