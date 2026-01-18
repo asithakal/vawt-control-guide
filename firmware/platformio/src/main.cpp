@@ -13,6 +13,8 @@
 #include "MPPTController.h"
 #include "SafetyMonitor.h"
 #include "DataLogger.h"
+#include <Adafruit_INA219.h>
+Adafruit_INA219 ina219;
 
 // Pin definitions
 #define RPM_SENSOR_PIN 34
@@ -72,6 +74,8 @@ void setup()
     pinMode(BRAKE_RELAY_PIN, OUTPUT);
     pinMode(WIND_SPEED_PIN, INPUT);
 
+    configTime(19800, 0, "pool.ntp.org"); // UTC+5:30 = 19800 seconds
+
     // Setup PWM
     ledcSetup(0, 20000, 8); // 20kHz, 8-bit
     ledcAttachPin(DUMP_LOAD_PWM_PIN, 0);
@@ -81,6 +85,11 @@ void setup()
 
     // Initialize I2C
     Wire.begin();
+
+    if (!ina219.begin())
+    {
+        Serial.println("Failed to find INA219 chip");
+    }
 
     // Initialize SD card
     if (!dataLogger.begin(SD_CS_PIN))
@@ -219,15 +228,12 @@ float calculateRPM()
 
 float readBusVoltage()
 {
-    // TODO: Implement INA219/INA226 I2C read
-    // Placeholder for compilation
-    return 48.5;
+    return ina219.getBusVoltage_V();
 }
 
 float readBusCurrent()
 {
-    // TODO: Implement INA219/INA226 I2C read
-    return 5.0;
+    return ina219.getCurrent_mA() / 1000.0;
 }
 
 float calculateLambda(float rpm, float windSpeed)
