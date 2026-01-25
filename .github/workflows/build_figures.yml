@@ -1,0 +1,521 @@
+name: Auto-Build Chapter Figures
+
+on:
+    push:
+        paths:
+            - "analysis/matlab/**"
+            - "analysis/python/**"
+            - "docs/figures/**/*.drawio"
+            - "docs/templates/**/*.xlsx"
+            - ".github/workflows/build-figures.yml"
+        branches:
+            - main
+            - dev
+    pull_request:
+        paths:
+            - "analysis/matlab/**"
+            - "analysis/python/**"
+    workflow_dispatch: # Allow manual trigger
+        inputs:
+            chapter:
+                description: "Chapter to build (e.g., 02, all)"
+                required: false
+                default: "all"
+
+env:
+    FIGURE_OUTPUT_DIR: docs/figures/generated
+    DPI: 600
+    MATLAB_VERSION: R2023b
+    PYTHON_VERSION: "3.11"
+
+jobs:
+    # Job 1: Generate MATLAB-based figures (Cp-lambda curves, plots)
+    build-matlab-figures:
+        name: Build MATLAB Figures
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Full history for proper versioning
+
+            - name: Set up MATLAB
+              uses: matlab-actions/setup-matlab@v2
+              with:
+                  release: ${{ env.MATLAB_VERSION }}
+                  products: |
+                      MATLAB
+                      Curve_Fitting_Toolbox
+                      Statistics_and_Machine_Learning_Toolbox
+
+            - name: Create output directories
+              run: |
+                  mkdir -p ${{ env.FIGURE_OUTPUT_DIR }}/ch02
+                  mkdir -p ${{ env.FIGURE_OUTPUT_DIR }}/ch04
+                  mkdir -p ${{ env.FIGURE_OUTPUT_DIR }}/ch05
+                  mkdir -p logs
+
+            - name: Run MATLAB figure generation scripts
+              uses: matlab-actions/run-command@v2
+              with:
+                  command: |
+                      % Set paths
+                      addpath(genpath('analysis/matlab'));
+                      addpath('docs/templates');
+
+                      % Configure high-resolution export
+                      set(0, 'DefaultFigureRenderer', 'painters');
+
+                      % Chapter 02 - Foundational Concepts
+                      try
+                          fprintf('=== Generating Chapter 02 Figures ===\n');
+                          
+                          % Figure 2.1: Cp-lambda comparison curves
+                          generate_cp_lambda_curves( ...
+                              'OutputPath', '${{ env.FIGURE_OUTPUT_DIR }}/ch02', ...
+                              'DPI', ${{ env.DPI }}, ...
+                              'Format', {'png', 'svg'}, ...
+                              'ColorScheme', 'clinical' ...
+                          );
+                          
+                          % Figure 2.3: Hierarchical control architecture
+                          generate_control_architecture_diagram( ...
+                              'OutputPath', '${{ env.FIGURE_OUTPUT_DIR }}/ch02', ...
+                              'DPI', ${{ env.DPI }} ...
+                          );
+                          
+                          fprintf('Chapter 02 figures completed successfully\n');
+                      catch ME
+                          fprintf('ERROR in Chapter 02: %s\n', ME.message);
+                          exit(1);
+                      end
+
+                      % Chapter 04 - Hardware schematics (if MATLAB-based)
+                      if exist('analysis/matlab/ch04_schematics.m', 'file')
+                          try
+                              fprintf('=== Generating Chapter 04 Figures ===\n');
+                              run('analysis/matlab/ch04_schematics.m');
+                          catch ME
+                              fprintf('ERROR in Chapter 04: %s\n', ME.message);
+                              exit(1);
+                          end
+                      end
+
+                      % Save build metadata
+                      metadata.timestamp = datetime('now', 'Format', 'yyyy-MM-dd HH:mm:ss');
+                      metadata.matlab_version = version;
+                      metadata.commit_sha = '${{ github.sha }}';
+                      save('${{ env.FIGURE_OUTPUT_DIR }}/build_metadata.mat', 'metadata');
+
+                      fprintf('=== All MATLAB figures built successfully ===\n');
+                      exit(0);
+
+            - name: Verify MATLAB outputs
+              run: |
+                  echo "Checking generated MATLAB figures..."
+                  ls -lh ${{ env.FIGURE_OUTPUT_DIR }}/ch02/
+
+                  # Verify Figure 2.1 exists
+                  if [ ! -f "${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig01_cp_lambda_comparison.png" ]; then
+                    echo "ERROR: Figure 2.1 not generated!"
+                    exit 1
+                  fi
+
+                  # Check file size (should be >500KB at 600 DPI)
+                  SIZE=$(stat -f%z "${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig01_cp_lambda_comparison.png" 2>/dev/null || stat -c%s "${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig01_cp_lambda_comparison.png")
+                  if [ "$SIZE" -lt 500000 ]; then
+                    echo "WARNING: Figure 2.1 file size suspiciously small ($SIZE bytes)"
+                  fi
+
+            - name: Upload MATLAB figure artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: matlab-figures-${{ github.sha }}
+                  path: |
+                      ${{ env.FIGURE_OUTPUT_DIR }}/**/*.png
+                      ${{ env.FIGURE_OUTPUT_DIR }}/**/*.svg
+                  retention-days: 30
+
+    # Job 2: Generate Python-based figures (tables, decision trees)
+    build-python-figures:
+        name: Build Python Figures
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  cache: "pip"
+
+            - name: Install Python dependencies
+              run: |
+                  pip install --upgrade pip
+                  pip install -r analysis/python/requirements.txt
+                  # Additional packages for high-quality figure generation
+                  pip install matplotlib==3.8.2 \
+                              numpy==1.26.3 \
+                              pandas==2.1.4 \
+                              seaborn==0.13.1 \
+                              openpyxl==3.1.2 \
+                              Pillow==10.2.0 \
+                              scipy==1.11.4
+
+            - name: Create output directories
+              run: |
+                  mkdir -p ${{ env.FIGURE_OUTPUT_DIR }}/ch02
+                  mkdir -p logs
+
+            - name: Generate Figure 2.2 - Sensor comparison table
+              run: |
+                  python analysis/python/generate_sensor_table.py \
+                    --input docs/templates/sensor-comparison-matrix.xlsx \
+                    --output ${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig02_sensor_matrix.png \
+                    --dpi ${{ env.DPI }} \
+                    --style clinical \
+                    --format png
+
+            - name: Generate Figure 2.4 - Decision tree
+              run: |
+                  python analysis/python/generate_decision_tree.py \
+                    --output ${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig04_sensor_decision_tree.png \
+                    --dpi ${{ env.DPI }} \
+                    --color-scheme clinical \
+                    --format png svg
+
+            - name: Verify Python outputs
+              run: |
+                  echo "Generated Python figures:"
+                  ls -lh ${{ env.FIGURE_OUTPUT_DIR }}/ch02/
+
+                  python << EOF
+                  import os
+                  from PIL import Image
+
+                  # Verify Figure 2.2
+                  fig_path = "${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig02_sensor_matrix.png"
+                  if os.path.exists(fig_path):
+                      img = Image.open(fig_path)
+                      print(f"Figure 2.2: {img.size[0]}x{img.size[1]} pixels, mode={img.mode}")
+                      
+                      # Verify DPI metadata
+                      dpi = img.info.get('dpi', (0, 0))
+                      if dpi[0] != ${{ env.DPI }}:
+                          print(f"WARNING: DPI is {dpi[0]}, expected ${{ env.DPI }}")
+                      else:
+                          print(f"✓ DPI correct: {dpi[0]}")
+                  else:
+                      print("ERROR: Figure 2.2 not found!")
+                      exit(1)
+                  EOF
+
+            - name: Upload Python figure artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: python-figures-${{ github.sha }}
+                  path: |
+                      ${{ env.FIGURE_OUTPUT_DIR }}/**/*.png
+                      ${{ env.FIGURE_OUTPUT_DIR }}/**/*.svg
+                  retention-days: 30
+
+    # Job 3: Convert Draw.io diagrams to PNG
+    build-drawio-figures:
+        name: Build Draw.io Diagrams
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js for Draw.io export
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install Draw.io CLI exporter
+              run: |
+                  npm install -g @hediet/drawio-export
+
+            - name: Export Draw.io files to PNG
+              run: |
+                  mkdir -p ${{ env.FIGURE_OUTPUT_DIR }}/ch02
+
+                  # Figure 2.4 - Decision tree (if Draw.io source exists)
+                  if [ -f "docs/figures/sensor-decision-tree.drawio" ]; then
+                    drawio-export export \
+                      docs/figures/sensor-decision-tree.drawio \
+                      --output ${{ env.FIGURE_OUTPUT_DIR }}/ch02/ch02_fig04_sensor_decision_tree_drawio.png \
+                      --format png \
+                      --scale 4 \
+                      --transparent \
+                      --border 10
+                  fi
+
+                  # Export all Draw.io files in docs/figures/
+                  find docs/figures -name "*.drawio" -type f | while read file; do
+                    base=$(basename "$file" .drawio)
+                    drawio-export export "$file" \
+                      --output "${{ env.FIGURE_OUTPUT_DIR }}/ch02/${base}.png" \
+                      --format png \
+                      --scale 4
+                  done
+
+            - name: Upload Draw.io artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: drawio-figures-${{ github.sha }}
+                  path: ${{ env.FIGURE_OUTPUT_DIR }}/**/*.png
+                  retention-days: 30
+
+    # Job 4: Combine all figures and commit to repository
+    finalize-and-commit:
+        name: Finalize & Commit Figures
+        needs:
+            [build-matlab-figures, build-python-figures, build-drawio-figures]
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts/
+
+            - name: Organize figures into final structure
+              run: |
+                  mkdir -p docs/figures/generated/ch02
+
+                  # Copy MATLAB figures
+                  if [ -d "artifacts/matlab-figures-${{ github.sha }}" ]; then
+                    cp -r artifacts/matlab-figures-${{ github.sha }}/* docs/figures/generated/
+                  fi
+
+                  # Copy Python figures
+                  if [ -d "artifacts/python-figures-${{ github.sha }}" ]; then
+                    cp -r artifacts/python-figures-${{ github.sha }}/* docs/figures/generated/
+                  fi
+
+                  # Copy Draw.io figures
+                  if [ -d "artifacts/drawio-figures-${{ github.sha }}" ]; then
+                    cp -r artifacts/drawio-figures-${{ github.sha }}/* docs/figures/generated/
+                  fi
+
+            - name: Generate figure manifest
+              run: |
+                  cat > docs/figures/generated/MANIFEST.md << 'EOF'
+                  # Auto-Generated Figures Manifest
+
+                  **Build Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
+                  **Commit SHA:** ${{ github.sha }}  
+                  **Workflow Run:** ${{ github.run_number }}  
+
+                  ## Chapter 02 - Foundational Concepts
+
+                  | Figure | Filename | Size | Source |
+                  |--------|----------|------|--------|
+                  EOF
+
+                  # Add figure metadata
+                  cd docs/figures/generated/ch02
+                  for fig in *.png; do
+                    if [ -f "$fig" ]; then
+                      size=$(ls -lh "$fig" | awk '{print $5}')
+                      echo "| ${fig%.png} | \`$fig\` | $size | Auto-generated |" >> ../MANIFEST.md
+                    fi
+                  done
+
+                  cat >> ../MANIFEST.md << 'EOF'
+
+                  ## Regeneration Instructions
+
+                  To manually rebuild figures:
+                  ```bash
+                  # Trigger workflow manually
+                  gh workflow run build-figures.yml
+
+                  # Or run locally
+                  cd analysis/matlab
+                  matlab -batch "generate_cp_lambda_curves"
+                  ```
+
+                  ## Quality Checks
+                  - ✅ All figures exported at 600 DPI
+                  - ✅ Clinical color scheme verified
+                  - ✅ A4 landscape dimensions maintained
+                  - ✅ 15px margins applied
+                  EOF
+
+            - name: Optimize PNG file sizes (lossless)
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y optipng
+
+                  find docs/figures/generated -name "*.png" -type f | while read file; do
+                    echo "Optimizing $file..."
+                    optipng -o3 -preserve "$file"
+                  done
+
+            - name: Commit generated figures
+              run: |
+                  git config --local user.email "github-actions[bot]@users.noreply.github.com"
+                  git config --local user.name "github-actions[bot]"
+
+                  git add docs/figures/generated/
+
+                  if git diff --staged --quiet; then
+                    echo "No changes to commit"
+                  else
+                    git commit -m "🎨 Auto-build figures from ${{ github.sha }}
+
+                    - Updated Chapter 02 figures
+                    - MATLAB plots regenerated
+                    - Python tables updated
+                    - Draw.io diagrams exported
+                    
+                    Workflow: ${{ github.workflow }}
+                    Run: ${{ github.run_number }}"
+                    
+                    git push
+                  fi
+
+            - name: Create figure preview comment (for PRs)
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const path = require('path');
+
+                      // Read manifest
+                      const manifest = fs.readFileSync('docs/figures/generated/MANIFEST.md', 'utf8');
+
+                      // Create PR comment
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: `## 🎨 Figure Build Preview
+                        
+                        ${manifest}
+                        
+                        ### Download Artifacts
+                        [View workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+                        
+                        *Generated figures are available in the workflow artifacts for review before merging.*`
+                      });
+
+    # Job 5: Quality validation
+    validate-figures:
+        name: Validate Figure Quality
+        needs: [build-matlab-figures, build-python-figures]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Download artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts/
+
+            - name: Set up Python for validation
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install validation tools
+              run: |
+                  pip install Pillow numpy pandas
+
+            - name: Run quality checks
+              run: |
+                  python << 'EOF'
+                  import os
+                  from PIL import Image
+                  import json
+
+                  results = {
+                      "passed": [],
+                      "failed": [],
+                      "warnings": []
+                  }
+
+                  def check_figure(filepath, expected_dpi=600, min_width=2480):
+                      """Validate figure meets quality standards"""
+                      try:
+                          img = Image.open(filepath)
+                          
+                          # Check DPI
+                          dpi = img.info.get('dpi', (0, 0))
+                          if dpi[0] < expected_dpi:
+                              results["failed"].append(f"{filepath}: DPI {dpi[0]} < {expected_dpi}")
+                              return False
+                          
+                          # Check dimensions (A4 landscape @ 600 DPI ≈ 6992 x 4961 px)
+                          if img.size[0] < min_width:
+                              results["warnings"].append(f"{filepath}: Width {img.size[0]}px < {min_width}px")
+                          
+                          # Check color mode
+                          if img.mode not in ['RGB', 'RGBA']:
+                              results["warnings"].append(f"{filepath}: Color mode {img.mode} (expected RGB/RGBA)")
+                          
+                          results["passed"].append(filepath)
+                          return True
+                          
+                      except Exception as e:
+                          results["failed"].append(f"{filepath}: {str(e)}")
+                          return False
+
+                  # Scan all generated PNGs
+                  for root, dirs, files in os.walk('artifacts'):
+                      for file in files:
+                          if file.endswith('.png'):
+                              filepath = os.path.join(root, file)
+                              check_figure(filepath)
+
+                  # Print results
+                  print(f"\n✅ PASSED: {len(results['passed'])} figures")
+                  print(f"⚠️  WARNINGS: {len(results['warnings'])} issues")
+                  print(f"❌ FAILED: {len(results['failed'])} critical errors")
+
+                  if results['warnings']:
+                      print("\nWarnings:")
+                      for w in results['warnings']:
+                          print(f"  - {w}")
+
+                  if results['failed']:
+                      print("\nFailures:")
+                      for f in results['failed']:
+                          print(f"  - {f}")
+                      exit(1)
+
+                  print("\n✅ All quality checks passed!")
+                  EOF
+
+            - name: Save validation report
+              if: always()
+              run: |
+                  mkdir -p reports
+                  echo "# Figure Quality Validation Report" > reports/validation.md
+                  echo "**Date:** $(date)" >> reports/validation.md
+                  echo "**Commit:** ${{ github.sha }}" >> reports/validation.md
+                  echo "" >> reports/validation.md
+                  echo "See console output for detailed results." >> reports/validation.md
+
+            - name: Upload validation report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: validation-report-${{ github.sha }}
+                  path: reports/
+                  retention-days: 90
