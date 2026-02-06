@@ -5,7 +5,44 @@
 [![PlatformIO](https://img.shields.io/badge/PlatformIO-Ready-blue.svg)](https://platformio.org/)
 [![Build Status](https://github.com/asithakal/vawt-control-guide/workflows/Firmware%20CI/badge.svg)](https://github.com/asithakal/vawt-control-guide/actions)
 
-A comprehensive, practical guide for undergraduate and postgraduate students designing control systems for small-scale vertical-axis wind turbines (VAWTs), with emphasis on Maximum Power Point Tracking (MPPT), safety systems, and deployment in tropical climates.
+---
+
+## 📢 Branch Strategy Notice
+
+**🚧 Important: This repository uses a dual-branch approach**
+
+This repository accompanies the guidebook [**"Small-Scale VAWT Control Systems: A Practical Guide"**](https://github.com/asithakal/vawt-control-book) and maintains two branches:
+
+### 🔵 `main` Branch (This Branch) - **Full Implementation Archive**
+
+- 📦 **Status**: Frozen / Reference Implementation
+- 🎯 **Purpose**: Complete scaffold with all planned implementations
+- ⚠️ **Warning**: Contains code from **all chapters** (Ch 1-11) including features not yet covered in the book
+- 📝 **Use Case**: Reference for developers planning ahead or contributing advanced features
+- 📚 **Corresponds To**: Full book completion (target Q2 2026)
+
+### 🟢 `book-aligned` Branch - **Incremental Development** ⭐ **Recommended for Students**
+
+- 📦 **Status**: Active Development
+- 🎯 **Purpose**: Code that **matches completed book chapters only**
+- ✅ **Current**: Chapter 1 complete (Introduction only)
+- 📝 **Use Case**: Students learning step-by-step alongside the book
+- 🔗 **Switch to this branch**: 
+  ```bash
+  git checkout book-aligned
+  ```
+  Or browse: [book-aligned branch](https://github.com/asithakal/vawt-control-guide/tree/book-aligned)
+
+### Which Branch Should I Use?
+
+| If you want... | Use Branch | Why |
+|----------------|------------|-----|
+| To **learn incrementally** with the book | `book-aligned` | Only contains tested code for completed chapters |
+| To **see the full architecture** before it's finalized | `main` | Complete reference implementation (may be untested) |
+| To **contribute** implementations for future chapters | `main` | Submit PRs against full scaffold |
+| To **build the system** described in completed chapters | `book-aligned` | Guaranteed alignment with book content |
+
+---
 
 ## 🎯 Project Overview
 
@@ -49,7 +86,15 @@ This control systems guide builds upon the foundational data acquisition archite
 ```bash
 # Clone this repository
 git clone https://github.com/asithakal/vawt-control-guide.git
-cd vawt-control-guide\firmware\platformio
+cd vawt-control-guide
+
+# For incremental learning (recommended for students):
+git checkout book-aligned
+
+# For full reference implementation:
+git checkout main
+
+cd firmware\platformio
 
 # Open in PlatformIO
 pio run -t upload  # Upload to ESP32
@@ -73,7 +118,7 @@ See [`hardware/schematics/README.md`](hardware/schematics/README.md) for wiring 
 
 See [`docs/case-studies/budget-comparison.md`](docs/case-studies/budget-comparison.md)
 
-## 🏗️ Repository Structure
+## 🏭️ Repository Structure
 
 ```
 vawt-control-guide/
@@ -253,7 +298,7 @@ If you use this repository in your research, please cite:
   publisher = {GitHub},
   journal = {GitHub repository},
   howpublished = {\url{https://github.com/asithakal/vawt-control-guide}},
-  doi = {10.5281/zenodo.XXXXXXX}
+  doi = {10.5281/zenodo.18291588}
 }
 ```
 
@@ -293,14 +338,14 @@ This work is licensed under a [Creative Commons Attribution 4.0 International Li
 - **Sabanci University** – MPPT algorithm validation
 - **Sri Lankan student researchers** – Field testing and feedback
 
-## 📞 Contact
+## 📧 Contact
 
 **Dr. Asitha Kulasekera**  
 University of Moratuwa, Sri Lanka  
-📧 [email](asitha@uom.lk)
+📧 asitha@uom.lk  
 🌐 [GitHub](https://github.com/asithakal)
 
 ---
 
-**Last Updated**: January 2026  
-**Status**: 🟢 Active Development
+**Last Updated**: February 6, 2026  
+**Status**: 🔵 Reference Implementation (Frozen) | 🟢 Active Development in `book-aligned` branch
